@@ -2,7 +2,7 @@
 <img src="./images/odoo-logo.png" width="100">
 </p>
 
-# odoo
+# Odoo
 Odoo is the world's most popular all-in-one EPR and CRM open platform for business applications.
 
 ### Highlights
