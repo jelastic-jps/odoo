@@ -4,6 +4,8 @@ name: Odoo Community Edition
 homepage: http:///www.odoo.com/
 baseUrl: https://raw.githubusercontent.com/jelastic-jps/odoo/master
 logo: /images/odoo-logo.png
+targetRegions:
+  type: [ vz.*, pcs.* ]
 categories:
   - apps/cms
   - apps/popular
