@@ -4,28 +4,54 @@ name: Odoo Community Edition
 homepage: http:///www.odoo.com/
 baseUrl: https://raw.githubusercontent.com/jelastic-jps/odoo/master
 logo: /images/odoo-logo.png
+globals:
+  db_user: odoo-${fn.random(1000)}
+  db_pswd: ${fn.password}
+  master_pswd: ${fn.password}
 targetRegions:
   type: [ vz.*, pcs.* ]
 categories:
   - apps/cms
   - apps/popular
   - apps/content-management
+
+onBeforeInit: |
+  var url = "https://registry.hub.docker.com/v1/repositories/odoo/tags";
+  var tags = toNative(new com.hivext.api.core.utils.Transport().get(url)).sort();
+  var ver = {},
+      def = 13;
+  for (var i = 0; i < tags.length; i++) {
+      ver[tags[i].name] = tags[i].name;
+      if (!isNaN(tags[i].name) && tags[i].name > def) def = tags[i].name;
+  }
+  
+  return {
+    result:0, 
+    settings: {
+      fields: [{
+          name: "version",
+          caption: "Oddo Version",
+          type: "list",
+          values: ver,
+          "default": def
+      }]    
+    }
+  };
+
 description: 
   text: Odoo is an all-in-one business management software to run a company (ERP, CMS, CRM application, e-Commerce backend, etc). 
     With 10.000+ apps in, Odoo covers all your business needs in a one-stop solution and provides top notch usability that scales across all apps. 
   short: Odoo is an all-in-one business software (ERP, CMS, CRM application, e-Commerce backend, etc).
-globals:
-  db_user: odoo-${fn.random(1000)}
-  db_pswd: ${fn.password}
-  master_pswd: ${fn.password}
+
 ssl: true
 skipNodeEmails: true
+
 nodes:
 - nodeType: nginx
   displayName: Balancer
   cloudlets: 16
   nodeGroup: bl
-- image: odoo:12.0
+- image: odoo:${settings.version}
   displayName: App Server
   cloudlets: 16
   nodeGroup: cp
@@ -40,6 +66,7 @@ nodes:
     POSTGRES_USER: ${globals.db_user}
     POSTGRES_PASSWORD: ${globals.db_pswd}
     POSTGRES_DB: postgres
+
 onInstall:
   - if ('${env.protocol}' == 'https'): 
       cmd[bl]: |-
@@ -56,6 +83,7 @@ onInstall:
       echo "workers = $(($(grep -c ^processor /proc/cpuinfo)*2))" >> /etc/odoo/odoo.conf
       echo "max_cron_threads = 1" >> /etc/odoo/odoo.conf
       /etc/init.d/odoo restart
+
 success: |-
   Please open [${env.url}](${env.url}) and complete the installation. 
     
