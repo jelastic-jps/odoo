@@ -1,5 +1,6 @@
 type: install
 id: odoo-ce
+version: 1.7
 name: Odoo Community Edition
 homepage: http:///www.odoo.com/
 baseUrl: https://raw.githubusercontent.com/jelastic-jps/odoo/master
