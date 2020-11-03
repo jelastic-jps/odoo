@@ -9,6 +9,7 @@ globals:
   db_user: odoo-${fn.random(1000)}
   db_pswd: ${fn.password}
   master_pswd: ${fn.password}
+  odoo_config: /etc/odoo/openerp-server.conf
 targetRegions:
   type: [ vz.*, pcs.* ]
 categories:
@@ -75,14 +76,14 @@ onInstall:
         service nginx restart
       user: root
   - cmd[cp]: |-
-      sudo sed -i s/"; admin_passwd.*"/"admin_passwd = ${globals.master_pswd}"/g /etc/odoo/odoo.conf
-      echo "db_host = $DB_HOST" >> /etc/odoo/odoo.conf
-      echo "db_port = $DB_PORT" >> /etc/odoo/odoo.conf
-      echo "db_password = $DB_POSTGRES_PASSWORD" >> /etc/odoo/odoo.conf
-      echo "db_user = $DB_POSTGRES_USER" >> /etc/odoo/odoo.conf
-      echo "proxy_mode = True" >> /etc/odoo/odoo.conf
-      echo "workers = $(($(grep -c ^processor /proc/cpuinfo)*2))" >> /etc/odoo/odoo.conf
-      echo "max_cron_threads = 1" >> /etc/odoo/odoo.conf
+      sudo sed -i s/"; admin_passwd.*"/"admin_passwd = ${globals.master_pswd}"/g ${globals.odoo_config}
+      echo "db_host = $DB_HOST" >> ${globals.odoo_config}
+      echo "db_port = $DB_PORT" >> ${globals.odoo_config}
+      echo "db_password = $DB_POSTGRES_PASSWORD" >> ${globals.odoo_config}
+      echo "db_user = $DB_POSTGRES_USER" >> ${globals.odoo_config}
+      echo "proxy_mode = True" >> ${globals.odoo_config}
+      echo "workers = $(($(grep -c ^processor /proc/cpuinfo)*2))" >> ${globals.odoo_config}
+      echo "max_cron_threads = 1" >> ${globals.odoo_config}
       /etc/init.d/odoo restart
 
 success: |-
