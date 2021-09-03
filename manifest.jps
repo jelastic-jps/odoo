@@ -22,7 +22,7 @@ onBeforeInit: |
   var url = "https://registry.hub.docker.com/v1/repositories/odoo/tags";
   var tags = toNative(new com.hivext.api.core.utils.Transport().get(url)).sort();
   var ver = {},
-      def = 13,
+      def = 14,
       tag;
       
   for (var i = 0; i < tags.length; i++) {
