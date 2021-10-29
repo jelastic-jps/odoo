@@ -24,8 +24,10 @@ onBeforeInit: |
   var ver = {},
       def = 13;
   for (var i = 0; i < tags.length; i++) {
-      ver[tags[i].name] = tags[i].name;
-      if (!isNaN(tags[i].name) && tags[i].name > def) def = tags[i].name;
+      if (tags[i].name > 10) {
+          ver[tags[i].name] = tags[i].name;
+          if (!isNaN(tags[i].name) && tags[i].name > def) def = tags[i].name;
+      }
   }
   
   return {
