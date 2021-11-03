@@ -79,6 +79,7 @@ onInstall:
         service nginx restart
       user: root
   - cmd[cp]: |-
+      echo "" > /var/log/run.log
       sudo sed -i s/"; admin_passwd.*"/"admin_passwd = ${globals.master_pswd}"/g ${globals.odoo_config} | tee -a ${globals.openerp_config}
       echo "db_host = $DB_HOST" | tee -a ${globals.odoo_config} | tee -a ${globals.openerp_config}
       echo "db_port = $DB_PORT" | tee -a ${globals.odoo_config} | tee -a ${globals.openerp_config}
@@ -88,7 +89,7 @@ onInstall:
       echo "workers = $(($(grep -c ^processor /proc/cpuinfo)*2))" | tee -a ${globals.odoo_config} | tee -a ${globals.openerp_config}
       echo "max_cron_threads = 1" | tee -a ${globals.odoo_config} | tee -a ${globals.openerp_config}
       /etc/init.d/odoo restart
-
+      
 success: |-
   Please open [${env.url}](${env.url}) and complete the installation. 
     
