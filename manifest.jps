@@ -61,8 +61,12 @@ nodes:
   cloudlets: 16
   nodeGroup: cp
   links: sqldb:db
+  startServiceOnCreation: false
   env:
     JELASTIC_EXPOSE: 8069
+    POSTGRES_USER: ${globals.db_user}
+    POSTGRES_PASSWORD: ${globals.db_pswd}
+    POSTGRES_DB: postgres
 - image: postgres:10
   cloudlets: 16
   nodeGroup: sqldb
@@ -79,7 +83,7 @@ onInstall:
         service nginx restart
       user: root
   - cmd[cp]: |-
-      echo "" > /var/log/run.log
+      iptables -t nat -A PREROUTING -p tcp -m tcp --dport 80 -m comment --comment "Jelastic HTTP Autoredirect" -j REDIRECT --to-ports 8069
       sudo sed -i s/"; admin_passwd.*"/"admin_passwd = ${globals.master_pswd}"/g ${globals.odoo_config} | tee -a ${globals.openerp_config}
       echo "db_host = $DB_HOST" | tee -a ${globals.odoo_config} | tee -a ${globals.openerp_config}
       echo "db_port = $DB_PORT" | tee -a ${globals.odoo_config} | tee -a ${globals.openerp_config}
