@@ -94,7 +94,7 @@ onInstall:
       echo "proxy_mode = True" | tee -a ${globals.odoo_config} | tee -a ${globals.openerp_config}
       echo "workers = $(($(grep -c ^processor /proc/cpuinfo)*2))" | tee -a ${globals.odoo_config} | tee -a ${globals.openerp_config}
       echo "max_cron_threads = 1" | tee -a ${globals.odoo_config} | tee -a ${globals.openerp_config}
-      ps uax
+      /etc/init.d/odoo start
       
 success: |-
   Please open [${env.url}](${env.url}) and complete the installation. 
