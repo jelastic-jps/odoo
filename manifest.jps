@@ -61,7 +61,6 @@ nodes:
   cloudlets: 16
   nodeGroup: cp
   links: sqldb:db
-  startServiceOnCreation: false
   env:
     JELASTIC_EXPOSE: 8069
     POSTGRES_USER: ${globals.db_user}
@@ -83,7 +82,10 @@ onInstall:
         service nginx restart
       user: root
   - cmd[cp]: |-
-      iptables -t nat -A PREROUTING -p tcp -m tcp --dport 80 -m comment --comment "Jelastic HTTP Autoredirect" -j REDIRECT --to-ports 8069
+      /etc/init.d/odoo stop
+      kill -9 $(ps aux | grep entrypoint.sh | grep -v grep | awk '{print $2}')
+      kill -9 $(ps aux | grep wait-for-psql | grep -v grep | awk '{print $2}')
+      echo '' > /var/log/run.log
       sudo sed -i s/"; admin_passwd.*"/"admin_passwd = ${globals.master_pswd}"/g ${globals.odoo_config} | tee -a ${globals.openerp_config}
       echo "db_host = $DB_HOST" | tee -a ${globals.odoo_config} | tee -a ${globals.openerp_config}
       echo "db_port = $DB_PORT" | tee -a ${globals.odoo_config} | tee -a ${globals.openerp_config}
@@ -92,7 +94,7 @@ onInstall:
       echo "proxy_mode = True" | tee -a ${globals.odoo_config} | tee -a ${globals.openerp_config}
       echo "workers = $(($(grep -c ^processor /proc/cpuinfo)*2))" | tee -a ${globals.odoo_config} | tee -a ${globals.openerp_config}
       echo "max_cron_threads = 1" | tee -a ${globals.odoo_config} | tee -a ${globals.openerp_config}
-      /etc/init.d/odoo restart
+      /etc/init.d/odoo start
       
 success: |-
   Please open [${env.url}](${env.url}) and complete the installation. 
