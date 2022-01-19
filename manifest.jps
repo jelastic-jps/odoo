@@ -98,5 +98,4 @@ onInstall:
 success: |-
   Please open [${env.url}](${env.url}) and complete the installation. 
     
-  **Master Password:** ${globals.master_pswd} JE-61468
-[Odoo] After restarting the Env (or Stop/Start) Odoo isnt working throwing error 502
+  **Master Password:** ${globals.master_pswd}
