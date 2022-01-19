@@ -84,6 +84,7 @@ onInstall:
       user: root
   - cmd[cp]: |-
       iptables -t nat -A PREROUTING -p tcp -m tcp --dport 80 -m comment --comment "Jelastic HTTP Autoredirect" -j REDIRECT --to-ports 8069
+      iptables-save > /etc/iptables/rules.v4
       sudo sed -i s/"; admin_passwd.*"/"admin_passwd = ${globals.master_pswd}"/g ${globals.odoo_config} | tee -a ${globals.openerp_config}
       echo "db_host = $DB_HOST" | tee -a ${globals.odoo_config} | tee -a ${globals.openerp_config}
       echo "db_port = $DB_PORT" | tee -a ${globals.odoo_config} | tee -a ${globals.openerp_config}
@@ -97,4 +98,5 @@ onInstall:
 success: |-
   Please open [${env.url}](${env.url}) and complete the installation. 
     
-  **Master Password:** ${globals.master_pswd} 
+  **Master Password:** ${globals.master_pswd} JE-61468
+[Odoo] After restarting the Env (or Stop/Start) Odoo isnt working throwing error 502
