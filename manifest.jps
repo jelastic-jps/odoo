@@ -3,7 +3,7 @@ id: odoo-ce
 version: 1.7
 name: Odoo Community Edition
 homepage: http:///www.odoo.com/
-baseUrl: https://raw.githubusercontent.com/jelastic-jps/odoo/master
+baseUrl: https://raw.githubusercontent.com/jelastic-jps/odoo/14.0
 logo: /images/odoo-logo.png
 globals:
   db_user: odoo-${fn.random(1000)}
