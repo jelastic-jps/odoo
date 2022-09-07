@@ -19,31 +19,46 @@ categories:
   - apps/content-management
 
 onBeforeInit: |
-  var url = "https://registry.hub.docker.com/v1/repositories/odoo/tags";
-  var tags = toNative(new com.hivext.api.core.utils.Transport().get(url)).sort();
+  import org.apache.commons.httpclient.HttpClient;
+  import org.apache.commons.httpclient.methods.GetMethod;
+
+  var client = new HttpClient(),
+      getMethod,
+      response,
+      status,
+      resp,
+      url;
+  
+  url = "https://registry.hub.docker.com/v2/repositories/library/odoo/tags";
+  getMethod = new GetMethod(url);
+  status = client.executeMethod(getMethod);
+  resp = getMethod.getResponseBodyAsString();
+  resp = JSON.parse(resp);
+  tags = resp.results;
+
   var ver = {};
   var def = 13;
   var tag;
 
   for (var i = 0, n = tags.length; i < n; i++) {
-      tag = parseFloat(tags[i].name); 
+      tag = parseFloat(tags[i].name);
       if (!isNaN(tag) && tag > 10) {
           ver[tags[i].name] = String(tags[i].name);
           if (tag >= def) def = tags[i].name;
       }
   }
-  
+
   return {
-    result:0, 
-    settings: {
-      fields: [{
-          name: "version",
-          caption: "Oddo Version",
-          type: "list",
-          values: ver,
-          "default": def
-      }]    
-    }
+      result:0,
+      settings: {
+          fields: [{
+              name: "version",
+              caption: "Oddo Version",
+              type: "list",
+              values: ver,
+              "default": def
+          }]
+      }
   };
 
 description: 
