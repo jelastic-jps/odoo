@@ -85,7 +85,7 @@ nodes:
     POSTGRES_USER: ${globals.db_user}
     POSTGRES_PASSWORD: ${globals.db_pswd}
     POSTGRES_DB: postgres
-- image: postgres:13
+- image: postgres:13.5
   cloudlets: 16
   nodeGroup: sqldb
   displayName: Postgres DB
