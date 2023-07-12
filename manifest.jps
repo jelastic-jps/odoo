@@ -97,8 +97,10 @@ nodes:
 onInstall:
   - if ('${env.protocol}' == 'https'): 
       cmd[bl]: |-
-        sed -i ':a;$!{N;ba};s/\(location \/ {\)/\1\n\n\t\t\t\t\t\tif ($http_x_forwarded_proto = http) {\n\t\t\t\t\t\t\t\treturn 302 https:\/\/$host$request_uri;\n\t\t\t\t\t\t\t\terror_page  500 502 503 504 = @rescue;\n\t\t\t\t\t\t}\n/1' /etc/nginx/nginx-jelastic.conf
-        sed -i 's|location = /50x.html {|    location /websocket {\n        proxy_redirect off;\n        proxy_pass http://${nodes.cp[0].address}:8072;\n                  }\n      location = /50x.html {|g' /etc/nginx/nginx-jelastic.conf
+        CONF_FILE="/etc/nginx/nginx-jelastic.conf"
+        sed -i ':a;$!{N;ba};s/\(location \/ {\)/\1\n\n\t\t\t\t\t\tif ($http_x_forwarded_proto = http) {\n\t\t\t\t\t\t\t\treturn 302 https:\/\/$host$request_uri;\n\t\t\t\t\t\t\t\terror_page  500 502 503 504 = @rescue;\n\t\t\t\t\t\t}\n/1' $CONF_FILE
+        sed -i 's|location = /50x.html {|    location /websocket {\n        proxy_redirect off;\n        proxy_pass http://${nodes.cp[0].address}:8072;\n                  }\n      location = /50x.html {|g' $CONF_FILE
+        sed -i 's|proxy_connect_timeout 5s;|proxy_connect_timeout 5s;\n                proxy_set_header X-NginX-Proxy true;\n                proxy_set_header X-Forwarded-Proto https;\n                proxy_set_header X-Forwarded-Host $host;|g'  $CONF_FILE
         service nginx restart
       user: root
   - cmd[cp]: |-
