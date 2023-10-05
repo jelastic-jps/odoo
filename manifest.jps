@@ -60,6 +60,15 @@ onBeforeInit: |
           }]
       }
   };
+  
+onAfterBindSSL:
+  if (nodes.bl && ${settings.version} > 15):
+    cmd[bl]: |-
+      sed -i "s|location / {|location /websocket {\n        proxy_redirect off;\n        proxy_pass http://odoochat;\n    proxy_set_header Upgrade \$http_upgrade;\n    proxy_set_header Connection \$connection_upgrade;\n    proxy_set_header X-Forwarded-Host \$host;\n    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;\n    proxy_set_header X-Forwarded-Proto \$scheme;\n    proxy_set_header X-Real-IP \$remote_addr;    \n    }\nlocation / {|g" /etc/nginx/conf.d/ssl.conf
+      sed -i "1s|^|upstream odoo {\n  server ${nodes.cp[0].address}:8069;\n}\nupstream odoochat {\n  server ${nodes.cp[0].address}:8072;\n}\nmap \$http_upgrade \$connection_upgrade {\n  default upgrade;\n  ''      close;\n}\n    # http -> https\nserver {\n  listen 80; \n  server_name ${env.domain};\n  rewrite ^(.*) https://\$host\$1 permanent;\n}\n|" /etc/nginx/conf.d/ssl.conf
+      sed -i "s|proxy_pass http://\$upstream_name;|proxy_pass http://\$upstream_name;\n						proxy_set_header X-Forwarded-Host \$host;|g" /etc/nginx/conf.d/ssl.conf
+      service nginx restart
+    user: root
 
 description: 
   text: Odoo is an all-in-one business management software to run a company (ERP, CMS, CRM application, e-Commerce backend, etc). 
