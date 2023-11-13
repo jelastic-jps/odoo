@@ -53,7 +53,7 @@ onBeforeInit: |
       settings: {
           fields: [{
               name: "version",
-              caption: "Oddo Version",
+              caption: "Odoo Version",
               type: "list",
               values: ver,
               "default": def
