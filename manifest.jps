@@ -42,7 +42,7 @@ onBeforeInit: |
 
   for (var i = 0, n = tags.length; i < n; i++) {
       tag = parseFloat(tags[i].name);
-      if (!isNaN(tag) && tag > 10) {
+      if (!isNaN(tag) && tag > 10 && tag < 18) {
           ver[tags[i].name] = String(tags[i].name);
           if (tag >= def) def = tags[i].name;
       }
