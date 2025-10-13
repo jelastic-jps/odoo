@@ -113,7 +113,7 @@ onInstall:
       iptables -t nat -A PREROUTING -p tcp -m tcp --dport 80 -m comment --comment "Jelastic HTTP Autoredirect" -j REDIRECT --to-ports 8069
       iptables-save > /etc/iptables/rules.v4
       sudo sed -i s/"; admin_passwd.*"/"admin_passwd = ${globals.master_pswd}"/g ${globals.odoo_config} | tee -a ${globals.openerp_config}
-      echo "db_host = ${nodes.sqldb.master.intIp}" | tee -a ${globals.odoo_config} | tee -a ${globals.openerp_config}
+      echo "db_host = ${nodes.sqldb.master.intIP}" | tee -a ${globals.odoo_config} | tee -a ${globals.openerp_config}
       echo "db_port = 5432" | tee -a ${globals.odoo_config} | tee -a ${globals.openerp_config}
       echo "db_password = ${globals.db_pswd}" | tee -a ${globals.odoo_config} | tee -a ${globals.openerp_config}
       echo "db_user = ${globals.db_user}" | tee -a ${globals.odoo_config} | tee -a ${globals.openerp_config}
