@@ -6,7 +6,7 @@ homepage: http:///www.odoo.com/
 baseUrl: https://raw.githubusercontent.com/jelastic-jps/odoo/master
 logo: /images/odoo-logo.png
 globals:
-  db_user: odoo-${fn.random(1000)}
+  db_user: odoo${fn.random(1000)}
   db_pswd: ${fn.password}
   master_pswd: ${fn.password}
   odoo_config: /etc/odoo/odoo.conf
@@ -93,16 +93,14 @@ nodes:
     POSTGRES_USER: ${globals.db_user}
     POSTGRES_PASSWORD: ${globals.db_pswd}
     POSTGRES_DB: postgres
-- image: postgres:13.5
+- nodeType: postgres15
   cloudlets: 16
   nodeGroup: sqldb
   displayName: Postgres DB
-  env:
-    POSTGRES_USER: ${globals.db_user}
-    POSTGRES_PASSWORD: ${globals.db_pswd}
-    POSTGRES_DB: postgres
 
 onInstall:
+  - cmd[${nodes.sqldb.master.id}]: 
+         psql -Uwebadmin postgres -c "CREATE USER ${globals.db_user} WITH ENCRYPTED PASSWORD '${globals.db_pswd}' SUPERUSER;"
   - if ('${env.protocol}' == 'https'): 
       cmd[bl]: |-
         CONF_FILE="/etc/nginx/nginx-jelastic.conf"
@@ -115,10 +113,10 @@ onInstall:
       iptables -t nat -A PREROUTING -p tcp -m tcp --dport 80 -m comment --comment "Jelastic HTTP Autoredirect" -j REDIRECT --to-ports 8069
       iptables-save > /etc/iptables/rules.v4
       sudo sed -i s/"; admin_passwd.*"/"admin_passwd = ${globals.master_pswd}"/g ${globals.odoo_config} | tee -a ${globals.openerp_config}
-      echo "db_host = $DB_HOST" | tee -a ${globals.odoo_config} | tee -a ${globals.openerp_config}
-      echo "db_port = $DB_PORT" | tee -a ${globals.odoo_config} | tee -a ${globals.openerp_config}
-      echo "db_password = $DB_POSTGRES_PASSWORD" | tee -a ${globals.odoo_config} | tee -a ${globals.openerp_config}
-      echo "db_user = $DB_POSTGRES_USER" | tee -a ${globals.odoo_config} | tee -a ${globals.openerp_config}
+      echo "db_host = ${nodes.sqldb.master.intIP}" | tee -a ${globals.odoo_config} | tee -a ${globals.openerp_config}
+      echo "db_port = 5432" | tee -a ${globals.odoo_config} | tee -a ${globals.openerp_config}
+      echo "db_password = ${globals.db_pswd}" | tee -a ${globals.odoo_config} | tee -a ${globals.openerp_config}
+      echo "db_user = ${globals.db_user}" | tee -a ${globals.odoo_config} | tee -a ${globals.openerp_config}
       echo "proxy_mode = True" | tee -a ${globals.odoo_config} | tee -a ${globals.openerp_config}
       echo "workers = $(($(grep -c ^processor /proc/cpuinfo)*2))" | tee -a ${globals.odoo_config} | tee -a ${globals.openerp_config}
       echo "max_cron_threads = 1" | tee -a ${globals.odoo_config} | tee -a ${globals.openerp_config}
