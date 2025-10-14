@@ -88,6 +88,8 @@ nodes:
   nodeGroup: cp
   links: sqldb:db
   startServiceOnCreation: false
+  volumes:
+    - /etc/odoo
   env:
     JELASTIC_EXPOSE: 8069
     POSTGRES_USER: ${globals.db_user}
