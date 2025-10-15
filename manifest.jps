@@ -36,7 +36,7 @@ settings:
     - caption: ODOO version
       type: list
       name: version
-      default: odoo17
+      default: 17.0
       required: true
       width: 225
       values:
