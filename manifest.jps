@@ -40,11 +40,11 @@ settings:
       required: true
       width: 225
       values:
-        - value: odoo15
+        - value: 15
           caption: ODOO 15
-        - value: odoo16
+        - value: 16
           caption: ODOO 16
-        - value: odoo17
+        - value: 17
           caption: ODOO 17
       
 
@@ -66,7 +66,7 @@ onBeforeInstall: |
     cloudlets: 16,
     nodeGroup: "bl"
   }, {
-    image: "${settings.version}",
+    image: "odoo:${settings.version}",
     displayName: "App Server",
     cloudlets: 16,
     nodeGroup: "cp",
