@@ -54,10 +54,11 @@ skipNodeEmails: true
 onBeforeInstall: |
   var resp = { result: 0, nodes: [] };
   var pgver;
+  var ver = "${settings.version}";
 
-  if ("${settings.version}".indexOf("15.") === 0) { pgver = "postgres13"; } 
-  else if ("${settings.version}".indexOf("16.") === 0) { pgver = "postgres14"; } 
-  else if ("${settings.version}".indexOf("17.") === 0) { pgver = "postgres15"; } 
+  if (ver.indexOf("15") === 0) { pgver = "postgres13"; } 
+  else if (ver.indexOf("16") === 0) { pgver = "postgres14"; } 
+  else if (ver.indexOf("17") === 0) { pgver = "postgres15"; } 
   else { pgver = "postgres15"; }
 
   resp.nodes.push({
@@ -71,9 +72,7 @@ onBeforeInstall: |
     cloudlets: 16,
     nodeGroup: "cp",
     startServiceOnCreation: false,
-    volumes: [
-      "/etc/odoo"
-    ],    
+    volumes: ["/etc/odoo"],
     env: {
       JELASTIC_EXPOSE: 8069,
       POSTGRES_USER: "${globals.db_user}",
@@ -86,7 +85,7 @@ onBeforeInstall: |
     nodeGroup: "sqldb",
     displayName: "Postgres DB"
   });
-  
+
   return resp;
 
 nodes: definedInOnBeforeInstall
