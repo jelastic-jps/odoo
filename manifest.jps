@@ -40,11 +40,11 @@ settings:
       required: true
       width: 225
       values:
-        - value: 15
+        - value: 15.0
           caption: ODOO 15
-        - value: 16
+        - value: 16.0
           caption: ODOO 16
-        - value: 17
+        - value: 17.0
           caption: ODOO 17
       
 
