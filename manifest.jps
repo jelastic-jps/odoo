@@ -5,18 +5,27 @@ name: Odoo Community Edition
 homepage: http:///www.odoo.com/
 baseUrl: https://raw.githubusercontent.com/jelastic-jps/odoo/master
 logo: /images/odoo-logo.png
-globals:
-  db_user: odoo${fn.random(1000)}
-  db_pswd: ${fn.password}
-  master_pswd: ${fn.password}
-  odoo_config: /etc/odoo/odoo.conf
-  openerp_config: /etc/odoo/openerp-server.conf
 targetRegions:
   type: [ vz.*, pcs.* ]
 categories:
   - apps/cms
   - apps/popular
   - apps/content-management
+
+description: 
+  text: Odoo is an all-in-one business management software to run a company (ERP, CMS, CRM application, e-Commerce backend, etc). 
+    With 10.000+ apps in, Odoo covers all your business needs in a one-stop solution and provides top notch usability that scales across all apps. 
+  short: Odoo is an all-in-one business software (ERP, CMS, CRM application, e-Commerce backend, etc).
+
+ssl: true
+skipNodeEmails: true
+
+globals:
+  db_user: odoo${fn.random(1000)}
+  db_pswd: ${fn.password}
+  master_pswd: ${fn.password}
+  odoo_config: /etc/odoo/odoo.conf
+  openerp_config: /etc/odoo/openerp-server.conf
 
 onAfterBindSSL:
     cmd[bl]: |-
@@ -26,69 +35,146 @@ onAfterBindSSL:
       service nginx restart
     user: root
 
-description: 
-  text: Odoo is an all-in-one business management software to run a company (ERP, CMS, CRM application, e-Commerce backend, etc). 
-    With 10.000+ apps in, Odoo covers all your business needs in a one-stop solution and provides top notch usability that scales across all apps. 
-  short: Odoo is an all-in-one business software (ERP, CMS, CRM application, e-Commerce backend, etc).
+onBeforeRedeployContainer[cp]:
+  - script: |-
 
-settings:
-  fields:
-    - caption: ODOO version
-      type: list
-      name: version
-      default: 17.0
-      required: true
-      width: 225
-      values:
-        - value: 15.0
-          caption: ODOO 15
-        - value: 16.0
-          caption: ODOO 16
-        - value: 17.0
-          caption: ODOO 17
-      
+        function getMajor(v) {
+          var m = (String(v||"").trim()).match(/^(\d+)/);
+          return m ? parseInt(m[1], 10) : null;
+        }
 
-ssl: true
-skipNodeEmails: true
+        var isUbuntu24 = false, nodeTypeAliases, aliasesStr;
+        var newTag  = "${event.params.tag}" || "";
+        var curTag  = "${nodes.cp.master.version}" || "";
+        var newMajor = getMajor(newTag);
+        var curMajor = getMajor(curTag);
 
-onBeforeInstall: |
-  var resp = { result: 0, nodes: [] };
-  var pgver;
-  var ver = "${settings.version}";
+        if (newMajor === null || curMajor === null) {
+          return {
+            result: 0,
+            isRedeploy: false,
+            message: "Cannot parse versions. Current: " + curTag + ", target: " + newTag
+          };
+        }
 
-  if (ver.indexOf("15") === 0) { pgver = "postgres13"; } 
-  else if (ver.indexOf("16") === 0) { pgver = "postgres14"; } 
-  else if (ver.indexOf("17") === 0) { pgver = "postgres15"; } 
-  else { pgver = "postgres15"; }
+        if (newMajor < curMajor) {
+          return {
+            result: 0,
+            isRedeploy: false,
+            message: "Downgrade disabled. Please use version >= " + curMajor + " (current: " + curTag + ", target: " + newTag + ")."
+          };
+        }
 
-  resp.nodes.push({
-    nodeType: "nginx",
-    displayName: "Balancer",
-    cloudlets: 16,
-    nodeGroup: "bl"
-  }, {
-    image: "odoo:${settings.version}",
-    displayName: "App Server",
-    cloudlets: 16,
-    nodeGroup: "cp",
-    startServiceOnCreation: false,
-    volumes: ["/etc/odoo"],
-    env: {
-      JELASTIC_EXPOSE: 8069,
-      POSTGRES_USER: "${globals.db_user}",
-      POSTGRES_PASSWORD: "${globals.db_pswd}",
-      POSTGRES_DB: "postgres"
+        if ((newMajor - curMajor) > 1) {
+          return {
+            result: 0,
+            isRedeploy: false,
+            message: "Upgrade disabled. Please use the next major version: " + (curMajor + 1) +
+                     " instead of " + newMajor + " (current: " + curTag + ", target: " + newTag + ")."
+          };
+        }
+
+        if (newMajor > 17) {
+          var resp = api.environment.control.GetTemplates();
+          if (resp.result !== 0) return resp;
+          for (var i = 0, n = resp.array.length; i < n; i++) {
+            if (resp.array[i].nodeType == "ubuntu-vps") {
+              nodeTypeAliases = resp.array[i].nodeTypeAliases || [];
+              aliasesStr = nodeTypeAliases.join(",");
+              isUbuntu24 = aliasesStr.indexOf("ubuntu24") !== -1;
+              break;
+            }
+          }
+          if (!isUbuntu24) {
+            return {
+              result: 0,
+              isRedeploy: false,
+              message: "Odoo " + newTag + " required ubuntu 24"
+            };
+          }
+        }
+                
+        return {
+          result: 0,
+          isRedeploy: true,
+          message: ""
+        };
+
+  - if (${response.isRedeploy} != true):
+      stopEvent:
+        type: warning
+        message: ${response.message}
+
+
+onAfterRedeployContainer[cp]:
+  - cmd[cp]: chown -R odoo:odoo /var/lib/odoo
+
+onBeforeInit: |
+  var settings = jps.settings || {fields: []};
+  var fields = settings.fields;
+  var resp = api.environment.control.GetTemplates(),isUbuntu24 = false, nodeTypeAliases, aliasesStr;
+  if (resp.result !== 0) return resp;
+  for (var i = 0, n = resp.array.length; i < n; i++) {
+    if (resp.array[i].nodeType == "ubuntu-vps") {
+      nodeTypeAliases = resp.array[i].nodeTypeAliases;
+      aliasesStr = nodeTypeAliases.join(",");
+      isUbuntu24 = aliasesStr.indexOf("ubuntu24") !== -1;
+      break;
     }
-  }, {
-    nodeType: pgver,
-    cloudlets: 16,
-    nodeGroup: "sqldb",
-    displayName: "Postgres DB"
-  });
+  }
+  if (isUbuntu24) {
+    fields.push({
+      caption: "ODOO version",
+      type: "list",
+      name: "version",
+      required: true,
+      width: 225,
+      default: "19.0",
+      values: [
+        {value: "17.0", caption: "ODOO 17"},
+        {value: "18.0", caption: "ODOO 18"},
+        {value: "19.0", caption: "ODOO 19"}
+      ]
+    });
+  } else {
+    fields.push({
+      caption: "ODOO version",
+      type: "list",
+      name: "version",
+      required: true,
+      width: 225,
+      default: "17.0",
+      hidden: true,
+      values: [
+        {value: "17.0", caption: "ODOO 17"}
+      ]
+    });
+  }
+  return { result: 0, settings: settings };
 
-  return resp;
+nodes:
+- nodeType: nginx
+  displayName: Balancer
+  cloudlets: 16
+  nodeGroup: bl
 
-nodes: definedInOnBeforeInstall
+- image: odoo:${settings.version}
+  displayName: App Server
+  cloudlets: 16
+  nodeGroup: cp
+  startServiceOnCreation: false
+  volumes: 
+    - /etc/odoo
+  env:
+    JELASTIC_EXPOSE: 8069
+    POSTGRES_USER: ${globals.db_user}
+    POSTGRES_PASSWORD: ${globals.db_pswd}
+    POSTGRES_DB: postgres
+
+- nodeType: postgres18
+  cloudlets: 16
+  nodeGroup: sqldb
+  displayName: Postgres DB
 
 onInstall:
   - cmd[${nodes.sqldb.master.id}]: 
