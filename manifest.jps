@@ -57,14 +57,6 @@ onBeforeRedeployContainer[cp]:
           };
         }
 
-        if (newMajor < curMajor) {
-          return {
-            result: 0,
-            isRedeploy: false,
-            message: "Downgrade disabled. Please use version >= " + curMajor + " (current: " + curTag + ", target: " + newTag + ")."
-          };
-        }
-
         if ((newMajor - curMajor) > 1) {
           return {
             result: 0,
