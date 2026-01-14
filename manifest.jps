@@ -23,8 +23,11 @@ skipNodeEmails: true
 globals:
   db_user: odoo${fn.random(1000)}
   db_pswd: ${fn.password}
-  master_pswd: ${fn.password}
   db_name: odoo
+  master_pswd: ${fn.password}
+  admin_user: admin
+  admin_pswd: ${fn.password}
+  admin_email: ${user.email}
   odoo_config: /etc/odoo/odoo.conf
   openerp_config: /etc/odoo/openerp-server.conf
 
@@ -177,7 +180,9 @@ onInstall:
   - configure_odoo
   - install_odoo_modules
   - add_odoo_admin_user
-  - cmd[cp]: /etc/init.d/odoo start
+  - cmd[cp]: |-
+      chown odoo:odoo -R /var/lib/odoo/*
+      /etc/init.d/odoo start
       
 actions:
   create_postgres_db:
@@ -220,11 +225,12 @@ actions:
         curl -fsSL "${baseUrl}/scripts/add_admin_user.py" -o /tmp/add_admin_user.py
         ODOO_DB_NAME="${globals.db_name}" \
         ODOO_CONFIG="${globals.odoo_config}" \
-        ODOO_MASTER_PSWD="${globals.master_pswd}" \
-        ODOO_ADMIN_EMAIL="admin@example.com" \
+        ODOO_ADMIN_PSWD="${globals.admin_pswd}" \
+        ODOO_ADMIN_USER="${globals.admin_user}" \
+        ODOO_ADMIN_EMAIL="${globals.admin_email}" \
         python3 /tmp/add_admin_user.py
       
 success: |-
   Please open [${env.url}](${env.url}) and complete the installation. 
     
-  **Master Password:** ${globals.master_pswd}
+  **Password:** ${globals.admin_pswd}
