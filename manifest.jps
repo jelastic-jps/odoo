@@ -218,7 +218,7 @@ actions:
           -d ${globals.db_name} \
           -i base,web,mail \
           --without-demo=all \
-          --stop-after-init
+          --stop-after-init >> /var/log/run.log
 
   add_odoo_admin_user:
     - cmd[cp]: |-
