@@ -231,6 +231,10 @@ actions:
         python3 /tmp/add_admin_user.py
       
 success: |-
-  Please open [${env.url}](${env.url}) and complete the installation. 
-    
-  **Password:** ${globals.admin_pswd}
+
+  **ODOO environment**: [${env.url}](${env.url})  
+
+  Use the following credentials:   
+
+  **Login**: ${globals.admin_user}  
+  **Password**: ${globals.admin_pswd}  
