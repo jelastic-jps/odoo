@@ -171,16 +171,17 @@ nodes:
   displayName: Postgres DB
 
 onInstall:
+  - cmd[cp]: /etc/init.d/odoo stop
   - create_postgres_db
-  - if ('${env.protocol}' == 'https'):
-      setup_https
+  - if ('${env.protocol}' == 'https'): setup_https
   - configure_odoo
   - install_odoo_modules
   - add_odoo_admin_user
+  - cmd[cp]: /etc/init.d/odoo start
       
 actions:
   create_postgres_db:
-    - cmd[${nodes.sqldb.master.id}]: |
+    - cmd[${nodes.sqldb.master.id}]: 
          psql -Uwebadmin postgres -c "CREATE USER ${globals.db_user} WITH ENCRYPTED PASSWORD '${globals.db_pswd}' SUPERUSER;"
 
   setup_https:
@@ -222,7 +223,6 @@ actions:
         ODOO_MASTER_PSWD="${globals.master_pswd}" \
         ODOO_ADMIN_EMAIL="admin@example.com" \
         python3 /tmp/add_admin_user.py
-        /etc/init.d/odoo restart
       
 success: |-
   Please open [${env.url}](${env.url}) and complete the installation. 
