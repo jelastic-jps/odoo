@@ -27,11 +27,51 @@ globals:
   odoo_config: /etc/odoo/odoo.conf
   openerp_config: /etc/odoo/openerp-server.conf
 
-onAfterBindSSL:
-    cmd[bl]: |-
+onBeforeBindSSL:
+  - cmd[bl]: |-
       CONF="/etc/nginx/conf.d/ssl.conf"
-      if ! grep -q 'upstream odoochat' "$CONF"; then
-        sed -i "1s|^|upstream odoo {\n  server ${nodes.cp[0].address}:8069;\n}\nupstream odoochat {\n  server ${nodes.cp[0].address}:8072;\n}\nmap \$http_upgrade \$connection_upgrade {\n  default upgrade;\n  ''      close;\n}\n    # http -> https\nserver {\n  listen 80; \n  server_name ${env.domain};\n  rewrite ^(.*) https://\$host\$1 permanent;\n}\n|" "$CONF"
+      BAK="$CONF.jps-bak"
+      [[ -f "$CONF" ]] || exit 0
+      odoo=$(grep -c '^upstream odoo {' "$CONF" || true)
+      odoochat=$(grep -c '^upstream odoochat {' "$CONF" || true)
+      [[ "$odoo" -le 1 ]] && [[ "$odoochat" -le 1 ]] && exit 0
+      cp -a "$CONF" "$BAK"
+      # jem ssl install restarts nginx before onAfterBindSSL and does not
+      # recreate an existing ssl.conf. Drop every injected copy so that
+      # restart can succeed; onAfterBindSSL writes one set and reloads.
+      sed -i \
+        -e '/^upstream odoo {$/,/rewrite \^(.*) https:\/\/\$host\$1 permanent;/{ /permanent;$/ { N; d; }; d; }' \
+        -e '/^upstream odoochat {$/,/^[[:space:]]*}[[:space:]]*$/d' \
+        -e '/location \/websocket {/,/^[[:space:]]*}[[:space:]]*$/d' \
+        -e '/^[[:space:]]*proxy_set_header X-Forwarded-Host \$host;[[:space:]]*$/d' \
+        "$CONF"
+      if ! nginx -t; then
+        cp -a "$BAK" "$CONF"
+        echo "nginx -t failed, $CONF restored from $BAK" >&2
+        # Keep stdout clean except for the marker: checkNginxConfig parses it.
+        echo "NGINX_CONFIG_BROKEN"
+        exit 0
+      fi
+    user: root
+  - checkNginxConfig:
+      stage: onBeforeBindSSL
+      out: ${response.out}
+
+onAfterBindSSL:
+  - cmd[bl]: |-
+      CONF="/etc/nginx/conf.d/ssl.conf"
+      BAK="$CONF.jps-bak"
+      [[ -f "$CONF" ]] || exit 0
+      cp -a "$CONF" "$BAK"
+      ADDR="${nodes.cp[0].address}"
+      if ! grep -q 'upstream odoochat' "$CONF" \
+        || ! grep -F -q "server $ADDR:8069;" "$CONF" \
+        || ! grep -F -q "server $ADDR:8072;" "$CONF"; then
+        sed -i \
+          -e '/^upstream odoo {$/,/rewrite \^(.*) https:\/\/\$host\$1 permanent;/{ /permanent;$/ { N; d; }; d; }' \
+          -e '/^upstream odoochat {$/,/^[[:space:]]*}[[:space:]]*$/d' \
+          "$CONF"
+        sed -i "1s|^|upstream odoo {\n  server $ADDR:8069;\n}\nupstream odoochat {\n  server $ADDR:8072;\n}\nmap \$http_upgrade \$connection_upgrade {\n  default upgrade;\n  ''      close;\n}\n    # http -> https\nserver {\n  listen 80; \n  server_name ${env.domain};\n  rewrite ^(.*) https://\$host\$1 permanent;\n}\n|" "$CONF"
       fi
       if ! grep -q 'location /websocket' "$CONF"; then
         sed -i "s|location / {|location /websocket {\n        proxy_redirect off;\n        proxy_pass http://odoochat;\n    proxy_set_header Upgrade \$http_upgrade;\n    proxy_set_header Connection \$connection_upgrade;\n    proxy_set_header X-Forwarded-Host \$host;\n    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;\n    proxy_set_header X-Forwarded-Proto \$scheme;\n    proxy_set_header X-Real-IP \$remote_addr;    \n    }\nlocation / {|" "$CONF"
@@ -39,8 +79,40 @@ onAfterBindSSL:
       if ! grep -A5 'proxy_pass http://\$upstream_name;' "$CONF" | grep -q 'proxy_set_header X-Forwarded-Host \$host;'; then
         sed -i "s|proxy_pass http://\$upstream_name;|proxy_pass http://\$upstream_name;\n    proxy_set_header X-Forwarded-Host \$host;|" "$CONF"
       fi
-      service nginx restart
+      if ! nginx -t; then
+        cp -a "$BAK" "$CONF"
+        echo "nginx -t failed, $CONF restored from $BAK" >&2
+        echo "NGINX_CONFIG_BROKEN"
+        exit 0
+      fi
+      service nginx restart >&2
     user: root
+  - checkNginxConfig:
+      stage: onAfterBindSSL
+      out: ${response.out}
+
+actions:
+  checkNginxConfig:
+    # SSL rebinding may run in the background (e.g. certificate auto-renewal),
+    # so notify the user by e-mail and fail the handler explicitly.
+    script: |-
+      if (String(out).indexOf("NGINX_CONFIG_BROKEN") == -1) return { result: 0 };
+      var title = "Nginx configuration error on Odoo environment " + envName,
+          text = "Nginx configuration error on the Balancer node of the Odoo environment " + envName + " during SSL certificate update. " +
+                 "The site may be unavailable over HTTPS. Please contact the Support Team for assistance.",
+          resp;
+      try {
+        resp = api.message.email.Send(appid, (typeof signature != "undefined" && signature) || session, null, email, email, title, text);
+        if (resp.result != 0) api.marketplace.console.WriteLog(appid, session, "Sending of e-mail notification failed: " + toJSON(resp));
+      } catch (ex) {
+        api.marketplace.console.WriteLog(appid, session, "Sending of e-mail notification failed: " + toJSON(ex));
+      }
+      return { result: com.hivext.api.Response.ERROR_UNKNOWN, error: "nginx -t failed during " + stage + ", ssl.conf restored from backup" };
+    params:
+      out: ${this.out}
+      stage: ${this.stage}
+      envName: ${env.name}
+      email: ${user.email}
 
 onBeforeRedeployContainer[cp]:
   - script: |-
